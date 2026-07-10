@@ -1,0 +1,5 @@
+node_modules
+.next
+dashboard.html
+instructions.md
+package-lock.json
