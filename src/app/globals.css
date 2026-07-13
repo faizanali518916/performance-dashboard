@@ -772,6 +772,166 @@ p {
   line-height: 1.55;
   margin: 0.13rem 0;
 }
+.journal-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+.journal-column {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+.journal-column h3 {
+  font-family: Poppins, sans-serif;
+  font-size: 0.9rem;
+}
+.timeline-actions {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+.timeline-actions button {
+  border: 0;
+  background: #eef2ff;
+  color: var(--primary);
+  border-radius: 6px;
+  padding: 0.3rem 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+.timeline-actions button:last-child {
+  background: #fef2f2;
+  color: #dc2626;
+}
+.journal-edit-form {
+  display: grid;
+  gap: 0.7rem;
+  border: 1px solid #c7d2fe;
+  background: #f8faff;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.1rem;
+}
+.journal-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(4px);
+}
+.journal-edit-modal {
+  width: min(100%, 560px);
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+  animation: journal-modal-in 0.18s ease-out;
+}
+.journal-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+.journal-modal-header h3 {
+  font-family: Poppins, sans-serif;
+  font-size: 1.05rem;
+}
+.journal-modal-header p {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.journal-edit-modal label {
+  display: grid;
+  gap: 0.4rem;
+  color: #374151;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+.journal-edit-modal input,
+.journal-edit-modal select,
+.journal-edit-modal textarea {
+  width: 100%;
+  border: 1px solid var(--border-dark);
+  border-radius: 9px;
+  padding: 0.7rem 0.8rem;
+  background: #fff;
+  color: var(--text);
+  outline: none;
+  font: inherit;
+  font-weight: 500;
+}
+.journal-edit-modal textarea {
+  min-height: 130px;
+  resize: vertical;
+  line-height: 1.5;
+}
+.journal-edit-modal input:focus,
+.journal-edit-modal select:focus,
+.journal-edit-modal textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.journal-modal-close {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: var(--muted);
+}
+.journal-modal-close:hover {
+  background: #e2e8f0;
+  color: var(--text);
+}
+.journal-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  padding-top: 0.25rem;
+}
+.journal-modal-actions .btn-primary,
+.journal-modal-actions .btn-secondary {
+  min-height: 40px;
+  padding: 0.65rem 1rem;
+}
+.btn-secondary {
+  border: 1px solid var(--border-dark);
+  border-radius: 9px;
+  background: #fff;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+.btn-secondary:hover {
+  background: #f8fafc;
+}
+@keyframes journal-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 .empty-state {
   min-height: 230px;
   text-align: center;
@@ -806,6 +966,17 @@ p {
 .monthly-card {
   max-width: 1040px;
   margin: auto;
+  overflow: hidden;
+  padding: 0;
+}
+.monthly-card > .card-header {
+  margin: 0;
+  padding: 1.6rem 1.7rem 1.45rem;
+  background: linear-gradient(135deg, #f7f5ff 0%, #ffffff 72%);
+  border-bottom: 1px solid var(--border);
+}
+.monthly-card > form {
+  padding: 1.5rem 1.7rem 1.7rem;
 }
 .role-chip {
   background: var(--primary-light);
@@ -816,10 +987,135 @@ p {
   font-weight: 800;
 }
 .entry-block {
-  background: var(--surface-alt);
-  border-radius: 10px;
-  padding: 1rem;
+  background: #fbfbfe;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.15rem;
+  margin-bottom: 1.2rem;
+}
+.entry-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  gap: 1.2rem;
+  align-items: stretch;
+}
+.entry-layout .entry-block,
+.journal-entry-panel {
+  height: 500px;
+  min-height: 500px;
+  margin: 0;
+  overflow-y: auto;
+}
+.entry-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
   margin-bottom: 1rem;
+}
+.entry-panel-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--text);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+}
+.entry-panel-header p {
+  margin-top: 0.22rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+.entry-panel-header > span {
+  flex: 0 0 auto;
+  padding: 0.28rem 0.55rem;
+  border-radius: 99px;
+  background: #eef2ff;
+  color: var(--primary);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+.journal-entry-panel {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #a7f3d0;
+  border-radius: 14px;
+  padding: 1.15rem;
+  background: #ecfdf5;
+}
+.journal-entry-panel.bad {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+.journal-entry-panel .entry-panel-header h3 {
+  color: #047857;
+}
+.journal-entry-panel.bad .entry-panel-header h3 {
+  color: #c2410c;
+}
+.journal-entry-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 100px;
+  gap: 0.7rem;
+  margin-bottom: 0.8rem;
+}
+.journal-entry-controls label {
+  display: grid;
+  gap: 0.35rem;
+  color: #475569;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+.journal-entry-controls select,
+.journal-entry-controls input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 8px;
+  padding: 0.6rem 0.65rem;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+  outline: none;
+  font: inherit;
+}
+.journal-entry-textarea {
+  flex: 1;
+  width: 100%;
+  min-height: 250px;
+  resize: none;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 10px;
+  padding: 0.85rem;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text);
+  outline: none;
+  line-height: 1.55;
+  font: inherit;
+}
+.journal-entry-textarea:focus,
+.journal-entry-controls select:focus,
+.journal-entry-controls input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14);
+}
+.journal-entry-hint {
+  margin-top: 0.7rem;
+  color: #64748b;
+  font-size: 0.66rem;
+}
+.journal-entry-locked {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  min-height: 220px;
+  padding: 1.5rem;
+  border: 1px dashed rgba(15, 118, 110, 0.28);
+  border-radius: 10px;
+  color: #64748b;
+  text-align: center;
+  font-size: 0.76rem;
+  line-height: 1.5;
 }
 .entry-block h3 {
   font-size: 0.75rem;
@@ -844,11 +1140,18 @@ p {
   justify-content: space-between;
   gap: 1rem;
   background: #fff;
-  padding: 0.65rem 0.75rem;
-  border-radius: 8px;
+  padding: 0.8rem 0.9rem;
+  border-radius: 10px;
   border: 1px solid var(--border);
   font-size: 0.78rem;
   font-weight: 700;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.entry-kpis label:focus-within {
+  border-color: #a5b4fc;
+  box-shadow: 0 0 0 3px #eef2ff;
 }
 .entry-kpis label > span {
   display: grid;
@@ -862,7 +1165,15 @@ p {
   width: 150px;
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--border-dark);
-  border-radius: 7px;
+  border-radius: 8px;
+  background: #fff;
+  outline: none;
+}
+.entry-kpis input:focus,
+.reflection select:focus,
+.impact-field input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
   outline: none;
 }
 .reflection-grid {
@@ -873,8 +1184,8 @@ p {
 .reflection {
   display: grid;
   gap: 0.55rem;
-  border-radius: 10px;
-  padding: 1rem;
+  border-radius: 14px;
+  padding: 1.15rem;
 }
 .reflection.good {
   background: #ecfdf5;
@@ -898,7 +1209,7 @@ p {
   color: #c2410c;
 }
 .reflection textarea {
-  min-height: 120px;
+  min-height: 145px;
   resize: vertical;
   border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.8);
@@ -906,6 +1217,14 @@ p {
   padding: 0.75rem;
   outline: none;
   font-size: 0.78rem;
+}
+.reflection select {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 8px;
+  padding: 0.65rem 0.7rem;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+  font-size: 0.76rem;
 }
 .reflection textarea:focus {
   border-color: var(--primary);
@@ -930,6 +1249,8 @@ p {
 }
 .monthly-card .btn-primary {
   margin-top: 1rem;
+  width: 100%;
+  min-height: 44px;
 }
 
 /* Team */
@@ -1071,7 +1392,6 @@ p {
   gap: 0.7rem;
 }
 .admin-card button {
-  justify-self: start;
   border: 0;
   background: var(--primary);
   color: white;
@@ -1082,6 +1402,27 @@ p {
   display: flex;
   gap: 0.4rem;
   align-items: center;
+}
+.admin-card .management-action {
+  justify-self: stretch;
+  align-self: end;
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  justify-content: center;
+}
+.admin-card .management-action:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+.management-spinner {
+  animation: management-spin 0.8s linear infinite;
+}
+@keyframes management-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .toast-message {
   position: fixed;
@@ -1165,6 +1506,7 @@ p {
   }
   .dash-bottom-row,
   .reflection-grid,
+  .entry-layout,
   .admin-grid {
     grid-template-columns: 1fr;
   }

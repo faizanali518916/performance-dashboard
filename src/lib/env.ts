@@ -5,6 +5,7 @@ const schema = z.object({
   DATABASE_URL: z.string().url(),
   NEXTAUTH_SECRET: z.string().min(32),
   NEXTAUTH_URL: z.string().url().default("http://localhost:3000"),
+  ENVIRONMENT: z.string().default("production"),
   SMTP_HOST: z.string().min(1),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().optional().default(""),

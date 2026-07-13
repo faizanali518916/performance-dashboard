@@ -1,14 +1,12 @@
 "use client";
 import { useMemo, useState } from "react";
 import {
-  Award,
   CalendarDays,
   Gauge,
   LayoutDashboard,
   Settings2,
   TrendingUp,
   Users,
-  AlertTriangle,
   ClipboardEdit,
   Target,
 } from "lucide-react";
@@ -18,17 +16,24 @@ import { PerformanceCard } from "./PerformanceCard";
 import { PerformanceChart, KpiBarChart } from "./PerformanceChart";
 import { KPICard } from "./KPICard";
 import { JournalTimeline } from "./JournalTimeline";
+import { JournalPanel } from "./JournalPanel";
 import { MonthlyEntry } from "./MonthlyEntry";
 import { TeamOverview } from "./TeamOverview";
 import { AdminPanel } from "./AdminPanel";
 
-type Tab = "overview" | "entry" | "achievements" | "challenges" | "kpis" | "team" | "admin";
+type Tab = "overview" | "entry" | "journal" | "kpis" | "team" | "management";
 export function DashboardShell({ data }: { data: DashboardData }) {
   const initialId = data.users.find((u) => u.id === data.actor.id)?.id || data.users[0]?.id;
   const [selectedId, setSelectedId] = useState(initialId);
   const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7));
   const [tab, setTab] = useState<Tab>("overview");
   const employee = data.users.find((u) => u.id === selectedId) || data.users[0];
+  const selectableUsers =
+    data.actor.accessLevel === "ADMIN"
+      ? data.users
+      : data.actor.accessLevel === "MANAGER"
+        ? data.users.filter((user) => user.id === data.actor.id || user.managerId === data.actor.id)
+        : data.users.filter((user) => user.id === data.actor.id);
   const stats = useMemo(() => (employee ? getStats(employee) : null), [employee]);
   if (!employee)
     return (
@@ -44,12 +49,11 @@ export function DashboardShell({ data }: { data: DashboardData }) {
     );
   const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard; visible: boolean }[] = [
     { id: "overview", label: "Overview", icon: LayoutDashboard, visible: true },
-    { id: "entry", label: "Monthly Entry", icon: ClipboardEdit, visible: true },
-    { id: "achievements", label: "Achievements", icon: Award, visible: true },
-    { id: "challenges", label: "Challenges", icon: AlertTriangle, visible: true },
+    { id: "entry", label: "Monthly Entry", icon: ClipboardEdit, visible: data.actor.accessLevel !== "EMPLOYEE" },
+    { id: "journal", label: "Journal", icon: ClipboardEdit, visible: true },
     { id: "kpis", label: "KPI Tracking", icon: Target, visible: true },
     { id: "team", label: "Team Overview", icon: Users, visible: data.actor.accessLevel !== "EMPLOYEE" },
-    { id: "admin", label: "Admin", icon: Settings2, visible: data.actor.accessLevel === "ADMIN" },
+    { id: "management", label: "Management", icon: Settings2, visible: data.actor.accessLevel !== "EMPLOYEE" },
   ];
   return (
     <div className="dashboard-page">
@@ -59,7 +63,7 @@ export function DashboardShell({ data }: { data: DashboardData }) {
           <label>
             <span>👤 Team member</span>
             <select value={employee.id} onChange={(e) => setSelectedId(e.target.value)}>
-              {data.users.map((u) => (
+              {selectableUsers.map((u) => (
                 <option value={u.id} key={u.id}>
                   {u.name}
                 </option>
@@ -167,38 +171,15 @@ export function DashboardShell({ data }: { data: DashboardData }) {
                     <span className="section-eyebrow">RECENT ACTIVITY</span>
                     <h2>Journal</h2>
                   </div>
-                  <button onClick={() => setTab("achievements")}>View all →</button>
+                  <button onClick={() => setTab("journal")}>View all →</button>
                 </div>
                 <JournalTimeline entries={employee.journals.slice(0, 4)} />
               </article>
             </section>
           </>
         )}
-        {tab === "entry" && <MonthlyEntry employee={employee} period={period} />}{" "}
-        {tab === "achievements" && (
-          <section className="card">
-            <div className="card-header">
-              <div>
-                <span className="section-eyebrow">WINS & MOMENTUM</span>
-                <h2>Achievements</h2>
-                <p>The moments that moved performance forward.</p>
-              </div>
-            </div>
-            <JournalTimeline entries={employee.journals} category="GOOD" />
-          </section>
-        )}{" "}
-        {tab === "challenges" && (
-          <section className="card">
-            <div className="card-header">
-              <div>
-                <span className="section-eyebrow">SUPPORT & LEARNING</span>
-                <h2>Challenges</h2>
-                <p>Visible blockers create better coaching conversations.</p>
-              </div>
-            </div>
-            <JournalTimeline entries={employee.journals} category="BAD" />
-          </section>
-        )}{" "}
+        {tab === "entry" && <MonthlyEntry employee={employee} period={period} actor={data.actor} />}{" "}
+        {tab === "journal" && <JournalPanel employee={employee} />}{" "}
         {tab === "kpis" && (
           <section className="card">
             <div className="card-header">
@@ -218,7 +199,7 @@ export function DashboardShell({ data }: { data: DashboardData }) {
           </section>
         )}{" "}
         {tab === "team" && <TeamOverview users={data.users} actorId={data.actor.id} />}{" "}
-        {tab === "admin" && <AdminPanel data={data} />}
+        {tab === "management" && <AdminPanel data={data} />}
       </main>
     </div>
   );

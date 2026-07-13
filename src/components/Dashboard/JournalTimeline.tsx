@@ -1,6 +1,23 @@
-import { AlertTriangle, Award } from "lucide-react";
-type Entry = { id: string; description: string; category: "GOOD" | "BAD"; impact: number; period: string };
-export function JournalTimeline({ entries, category }: { entries: Entry[]; category?: "GOOD" | "BAD" }) {
+import { AlertTriangle, Award, Pencil, Trash2 } from "lucide-react";
+type Entry = {
+  id: string;
+  description: string;
+  category: "GOOD" | "BAD";
+  impact: number;
+  period: string;
+  createdAt: string;
+};
+export function JournalTimeline({
+  entries,
+  category,
+  onEdit,
+  onDelete,
+}: {
+  entries: Entry[];
+  category?: "GOOD" | "BAD";
+  onEdit?: (entry: Entry) => void;
+  onDelete?: (entry: Entry) => void;
+}) {
   const rows = category ? entries.filter((e) => e.category === category) : entries;
   if (!rows.length)
     return (
@@ -26,6 +43,16 @@ export function JournalTimeline({ entries, category }: { entries: Entry[]; categ
             </div>
             <p>{entry.description}</p>
             <small>Impact {entry.impact}/100</small>
+            {onEdit && onDelete && (
+              <div className="timeline-actions">
+                <button type="button" onClick={() => onEdit(entry)}>
+                  <Pencil size={13} /> Edit
+                </button>
+                <button type="button" onClick={() => onDelete(entry)}>
+                  <Trash2 size={13} /> Delete
+                </button>
+              </div>
+            )}
           </div>
         </article>
       ))}

@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);
     const actor = await apiUser(request);
-    requireAccess(actor, AccessLevel.ADMIN);
+    requireAccess(actor, AccessLevel.ADMIN, AccessLevel.MANAGER);
     const input = await parseBody(request, createKpiSchema);
     const db = await getDataSource();
     return ok(await db.getRepository(KpiDefinition).save(input), 201);

@@ -39,19 +39,30 @@ export async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);
     const actor = await apiUser(request);
-    requireAccess(actor, AccessLevel.ADMIN);
+    requireAccess(actor, AccessLevel.ADMIN, AccessLevel.MANAGER);
     const input = await parseBody(request, createUserSchema);
     const db = await getDataSource();
     const email = input.email.toLowerCase();
     if (await db.getRepository(User).findOneBy({ email })) throw new HttpError(409, "Email is already in use");
+    const isAdmin = actor.accessLevel === AccessLevel.ADMIN;
+    if (isAdmin && input.accessLevel === AccessLevel.ADMIN)
+      throw new HttpError(422, "New users can only be employees or managers");
+    const accessLevel = isAdmin ? (input.accessLevel as AccessLevel) : AccessLevel.EMPLOYEE;
+    const managerId = isAdmin ? (input.managerId ?? null) : actor.id;
+    if (accessLevel === AccessLevel.EMPLOYEE && !managerId)
+      throw new HttpError(422, "Select a manager for an employee");
+    if (managerId) {
+      const manager = await db.getRepository(User).findOneBy({ id: managerId, accessLevel: AccessLevel.MANAGER });
+      if (!manager) throw new HttpError(422, "Select a valid manager");
+    }
     const user = await db.getRepository(User).save({
       name: input.name,
       email,
       password: await hashPassword(input.password),
       emailVerified: true,
       roleId: input.roleId,
-      managerId: input.managerId ?? null,
-      accessLevel: input.accessLevel as AccessLevel,
+      managerId,
+      accessLevel,
       status: input.status as UserStatus,
     });
     return ok({ id: user.id, name: user.name, email: user.email }, 201);

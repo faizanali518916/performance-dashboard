@@ -1,36 +1,51 @@
 "use client";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BriefcaseBusiness, Gauge, Plus, UserPlus } from "lucide-react";
+import { BriefcaseBusiness, Gauge, LoaderCircle, Plus, UserPlus } from "lucide-react";
 import type { DashboardData } from "@/lib/dashboard";
 export function AdminPanel({ data }: { data: DashboardData }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
-  async function submit(event: FormEvent<HTMLFormElement>, url: string) {
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const isAdmin = data.actor.accessLevel === "ADMIN";
+  const manageableUsers = data.users.filter(
+    (user) =>
+      user.id !== data.actor.id &&
+      (isAdmin ? user.accessLevel !== "ADMIN" : user.managerId === data.actor.id && user.accessLevel === "EMPLOYEE"),
+  );
+  const managers = data.users.filter((user) => user.accessLevel === "MANAGER");
+  const [selectedUserId, setSelectedUserId] = useState(manageableUsers[0]?.id ?? "");
+  const selectedUser = manageableUsers.find((user) => user.id === selectedUserId);
+  async function submit(event: FormEvent<HTMLFormElement>, url: string, action: string, method = "POST") {
     event.preventDefault();
+    if (pendingAction) return;
     setMessage("");
-    const form = new FormData(event.currentTarget);
+    setPendingAction(action);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const body: Record<string, unknown> = {};
     form.forEach((v, k) => (body[k] = v || null));
     try {
       const response = await fetch(url, {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
       setMessage(result.data.message || "Saved successfully");
-      event.currentTarget.reset();
+      formElement.reset();
       router.refresh();
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Unable to save");
+    } finally {
+      setPendingAction(null);
     }
   }
   return (
     <>
       <div className="admin-grid">
-        <form className="admin-card" onSubmit={(e) => submit(e, "/api/roles")}>
+        <form className="admin-card" onSubmit={(e) => submit(e, "/api/roles", "role")}>
           <div className="admin-icon purple">
             <BriefcaseBusiness />
           </div>
@@ -40,11 +55,12 @@ export function AdminPanel({ data }: { data: DashboardData }) {
             Role title
             <input name="title" required placeholder="Amazon Account Manager" />
           </label>
-          <button>
-            <Plus size={16} /> Add role
+          <button className="management-action" disabled={pendingAction !== null}>
+            {pendingAction === "role" ? <LoaderCircle className="management-spinner" size={16} /> : <Plus size={16} />}
+            Add role
           </button>
         </form>
-        <form className="admin-card" onSubmit={(e) => submit(e, "/api/kpis")}>
+        <form className="admin-card" onSubmit={(e) => submit(e, "/api/kpis", "kpi")}>
           <div className="admin-icon teal">
             <Gauge />
           </div>
@@ -64,13 +80,16 @@ export function AdminPanel({ data }: { data: DashboardData }) {
               <input name="description" placeholder="Monthly revenue" />
             </label>
           </div>
-          <button>
-            <Plus size={16} /> Add KPI
+          <button className="management-action" disabled={pendingAction !== null}>
+            {pendingAction === "kpi" ? <LoaderCircle className="management-spinner" size={16} /> : <Plus size={16} />}
+            Add KPI
           </button>
         </form>
         <form
           className="admin-card"
-          onSubmit={(e) => submit(e, `/api/roles/${String(new FormData(e.currentTarget).get("roleId"))}/kpis`)}
+          onSubmit={(e) =>
+            submit(e, `/api/roles/${String(new FormData(e.currentTarget).get("roleId"))}/kpis`, "assignment")
+          }
         >
           <div className="admin-icon orange">
             <Gauge />
@@ -109,16 +128,21 @@ export function AdminPanel({ data }: { data: DashboardData }) {
               <input type="number" name="target" min="0" step=".01" required />
             </label>
           </div>
-          <button>
-            <Plus size={16} /> Assign KPI
+          <button className="management-action" disabled={pendingAction !== null}>
+            {pendingAction === "assignment" ? (
+              <LoaderCircle className="management-spinner" size={16} />
+            ) : (
+              <Plus size={16} />
+            )}
+            Assign KPI
           </button>
         </form>
-        <form className="admin-card" onSubmit={(e) => submit(e, "/api/users")}>
+        <form className="admin-card" onSubmit={(e) => submit(e, "/api/users", "employee")}>
           <div className="admin-icon blue">
             <UserPlus />
           </div>
           <h3>Add an employee</h3>
-          <p>Create a verified account and reporting line.</p>
+          <p>{isAdmin ? "Create an account and choose its reporting line." : "Create an employee for your team."}</p>
           <div className="two-fields">
             <label>
               Name
@@ -147,30 +171,116 @@ export function AdminPanel({ data }: { data: DashboardData }) {
                 ))}
               </select>
             </label>
+            {isAdmin && (
+              <label>
+                Manager
+                <select name="managerId" defaultValue="">
+                  <option value="">No manager</option>
+                  {managers.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+          {isAdmin && (
             <label>
-              Manager
-              <select name="managerId" defaultValue="">
-                <option value="">No manager</option>
-                {data.users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
+              Access
+              <select name="accessLevel" defaultValue="EMPLOYEE">
+                <option>EMPLOYEE</option>
+                <option>MANAGER</option>
               </select>
             </label>
-          </div>
-          <label>
-            Access
-            <select name="accessLevel" defaultValue="EMPLOYEE">
-              <option>EMPLOYEE</option>
-              <option>MANAGER</option>
-              <option>ADMIN</option>
-            </select>
-          </label>
+          )}
           <input type="hidden" name="status" value="active" />
-          <button>
-            <UserPlus size={16} /> Create employee
+          <button className="management-action" disabled={pendingAction !== null}>
+            {pendingAction === "employee" ? (
+              <LoaderCircle className="management-spinner" size={16} />
+            ) : (
+              <UserPlus size={16} />
+            )}
+            Create employee
           </button>
+        </form>
+        <form
+          className="admin-card"
+          onSubmit={(event) => selectedUser && submit(event, `/api/users/${selectedUser.id}`, "update", "PATCH")}
+        >
+          <div className="admin-icon purple">
+            <UserPlus />
+          </div>
+          <h3>Update an employee</h3>
+          <p>
+            {isAdmin ? "Change an employee’s role, manager, or access." : "Assign a role to one of your employees."}
+          </p>
+          {manageableUsers.length ? (
+            <>
+              <label>
+                Employee
+                <select value={selectedUserId} onChange={(event) => setSelectedUserId(event.target.value)}>
+                  {manageableUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Role
+                <select name="roleId" key={`${selectedUserId}-role`} defaultValue={selectedUser?.roleId} required>
+                  {data.roles.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {isAdmin && (
+                <div className="two-fields">
+                  <label>
+                    Manager
+                    <select
+                      name="managerId"
+                      key={`${selectedUserId}-manager`}
+                      defaultValue={selectedUser?.managerId ?? ""}
+                    >
+                      <option value="">No manager</option>
+                      {managers
+                        .filter((manager) => manager.id !== selectedUser?.id)
+                        .map((manager) => (
+                          <option key={manager.id} value={manager.id}>
+                            {manager.name}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <label>
+                    Access
+                    <select
+                      name="accessLevel"
+                      key={`${selectedUserId}-access`}
+                      defaultValue={selectedUser?.accessLevel}
+                    >
+                      <option>EMPLOYEE</option>
+                      <option>MANAGER</option>
+                    </select>
+                  </label>
+                </div>
+              )}
+              <button className="management-action" disabled={pendingAction !== null}>
+                {pendingAction === "update" ? (
+                  <LoaderCircle className="management-spinner" size={16} />
+                ) : (
+                  <UserPlus size={16} />
+                )}
+                Save employee
+              </button>
+            </>
+          ) : (
+            <div className="inline-empty">No employees are available to update.</div>
+          )}
         </form>
       </div>
       {message && <div className="toast-message">{message}</div>}

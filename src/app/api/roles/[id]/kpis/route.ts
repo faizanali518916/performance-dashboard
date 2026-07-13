@@ -8,7 +8,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     assertSameOrigin(request);
     const actor = await apiUser(request);
-    requireAccess(actor, AccessLevel.ADMIN);
+    requireAccess(actor, AccessLevel.ADMIN, AccessLevel.MANAGER);
     const input = await parseBody(request, assignKpiSchema);
     const { id: roleId } = await params;
     const db = await getDataSource();

@@ -41,6 +41,7 @@ export const journalSchema = z.object({
   impact: z.coerce.number().finite().min(0).max(100),
   period: dateOnly,
 });
+export const updateJournalSchema = journalSchema.omit({ userId: true });
 export const createUserSchema = registerSchema.extend({
   roleId: uuid,
   managerId: uuid.nullable().optional(),

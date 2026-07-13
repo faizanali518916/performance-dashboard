@@ -32,13 +32,27 @@ export async function PATCH(request: NextRequest, context: Context) {
   try {
     assertSameOrigin(request);
     const actor = await apiUser(request);
-    requireAccess(actor, AccessLevel.ADMIN);
     const { id } = await context.params;
     const input = await parseBody(request, updateUserSchema);
     if (input.managerId === id) throw new HttpError(422, "A user cannot manage themselves");
     const db = await getDataSource();
+    if (actor.accessLevel === AccessLevel.MANAGER) {
+      await assertCanAccessUser(actor, id);
+      if (id === actor.id || Object.keys(input).some((key) => key !== "roleId"))
+        throw new HttpError(403, "Managers can only update roles for their employees");
+      const result = await db.getRepository(User).update(id, { roleId: input.roleId });
+      if (!result.affected) throw new HttpError(404, "User not found");
+      return ok({ message: "User updated" });
+    }
+    requireAccess(actor, AccessLevel.ADMIN);
+    if (input.accessLevel === AccessLevel.ADMIN) throw new HttpError(422, "Users cannot be made administrators here");
+    if (input.managerId) {
+      const manager = await db.getRepository(User).findOneBy({ id: input.managerId, accessLevel: AccessLevel.MANAGER });
+      if (!manager) throw new HttpError(422, "Select a valid manager");
+    }
     const update = {
       ...input,
+      managerId: input.accessLevel === AccessLevel.MANAGER ? null : input.managerId,
       status: input.status as UserStatus | undefined,
       accessLevel: input.accessLevel as AccessLevel | undefined,
     };

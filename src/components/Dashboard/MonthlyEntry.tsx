@@ -5,10 +5,21 @@ import { useRouter } from "next/navigation";
 import type { DashboardData } from "@/lib/dashboard";
 
 type Employee = DashboardData["users"][number];
-export function MonthlyEntry({ employee, period }: { employee: Employee; period: string }) {
+
+export function MonthlyEntry({
+  employee,
+  period,
+  actor,
+}: {
+  employee: Employee;
+  period: string;
+  actor: DashboardData["actor"];
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [entryType, setEntryType] = useState<"GOOD" | "BAD">("GOOD");
+  const [journalText, setJournalText] = useState("");
   const rows = useMemo(
     () =>
       employee.assignments.map((a) => {
@@ -17,6 +28,8 @@ export function MonthlyEntry({ employee, period }: { employee: Employee; period:
       }),
     [employee, period],
   );
+  const canAddJournal = actor.accessLevel !== "EMPLOYEE" && actor.id !== employee.id;
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -34,25 +47,16 @@ export function MonthlyEntry({ employee, period }: { employee: Employee; period:
           target: row.target,
         });
       }
-      const achievement = String(form.get("achievement") || "").trim();
-      const challenge = String(form.get("challenge") || "").trim();
-      const impact = Number(form.get("impact") || 10);
-      if (achievement)
+      const description = canAddJournal ? journalText.trim() : "";
+      if (description)
         await api("/api/journals", {
           userId: employee.id,
-          description: achievement,
-          category: "GOOD",
-          impact,
+          description,
+          category: entryType,
+          impact: Number(form.get("impact") || 10),
           period: `${period}-01`,
         });
-      if (challenge)
-        await api("/api/journals", {
-          userId: employee.id,
-          description: challenge,
-          category: "BAD",
-          impact,
-          period: `${period}-01`,
-        });
+      setJournalText("");
       setMessage("Monthly performance saved.");
       router.refresh();
     } catch (e) {
@@ -61,6 +65,7 @@ export function MonthlyEntry({ employee, period }: { employee: Employee; period:
       setBusy(false);
     }
   }
+
   return (
     <section className="card monthly-card">
       <div className="card-header">
@@ -74,53 +79,84 @@ export function MonthlyEntry({ employee, period }: { employee: Employee; period:
         <span className="role-chip">{employee.roleTitle}</span>
       </div>
       <form onSubmit={save}>
-        <div className="entry-block">
-          <h3>
-            📊 KPI results <span>Target vs actual</span>
-          </h3>
-          {rows.length ? (
-            <div className="entry-kpis">
-              {rows.map((row) => (
-                <label key={row.kpiId}>
-                  <span>
-                    {row.name}
-                    <small>
-                      Target {row.target.toLocaleString()} {row.unit}
-                    </small>
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    name={`kpi-${row.kpiId}`}
-                    defaultValue={row.current}
-                    placeholder="Actual"
-                  />
-                </label>
-              ))}
+        <div className="entry-layout">
+          <section className="entry-block">
+            <div className="entry-panel-header">
+              <div>
+                <h3>📊 KPI results</h3>
+                <p>Target vs actual</p>
+              </div>
+              <span>
+                {rows.length} {rows.length === 1 ? "metric" : "metrics"}
+              </span>
             </div>
-          ) : (
-            <div className="inline-empty">No KPIs are assigned to this role yet. Ask an admin to configure them.</div>
-          )}
+            {rows.length ? (
+              <div className="entry-kpis">
+                {rows.map((row) => (
+                  <label key={row.kpiId}>
+                    <span>
+                      {row.name}
+                      <small>
+                        Target {row.target.toLocaleString()} {row.unit}
+                      </small>
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      name={`kpi-${row.kpiId}`}
+                      defaultValue={row.current}
+                      placeholder="Actual"
+                    />
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <div className="inline-empty">No KPIs are assigned to this role yet. Ask an admin to configure them.</div>
+            )}
+          </section>
+          <section className={`journal-entry-panel ${entryType === "GOOD" ? "good" : "bad"}`}>
+            <div className="entry-panel-header">
+              <div>
+                <h3>{entryType === "GOOD" ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />} Journal entry</h3>
+                <p>Record one reflection for this month</p>
+              </div>
+              {canAddJournal && <span>Optional</span>}
+            </div>
+            {canAddJournal ? (
+              <>
+                <div className="journal-entry-controls">
+                  <label>
+                    Type
+                    <select value={entryType} onChange={(event) => setEntryType(event.target.value as "GOOD" | "BAD")}>
+                      <option value="GOOD">Achievement</option>
+                      <option value="BAD">Challenge</option>
+                    </select>
+                  </label>
+                  <label>
+                    Impact
+                    <input name="impact" type="number" min="0" max="100" defaultValue="10" />
+                  </label>
+                </div>
+                <textarea
+                  className="journal-entry-textarea"
+                  value={journalText}
+                  onChange={(event) => setJournalText(event.target.value)}
+                  placeholder={
+                    entryType === "GOOD"
+                      ? "What went especially well this month?"
+                      : "What slowed progress or needs support?"
+                  }
+                />
+                <small className="journal-entry-hint">You can add one achievement or challenge per save.</small>
+              </>
+            ) : (
+              <div className="journal-entry-locked">
+                Journal entries can only be added for a team member you manage.
+              </div>
+            )}
+          </section>
         </div>
-        <div className="reflection-grid">
-          <label className="reflection good">
-            <span>
-              <CheckCircle2 size={18} /> Achievement
-            </span>
-            <textarea name="achievement" placeholder="What went especially well this month?" />
-          </label>
-          <label className="reflection bad">
-            <span>
-              <AlertTriangle size={18} /> Challenge or blocker
-            </span>
-            <textarea name="challenge" placeholder="What slowed progress or needs support?" />
-          </label>
-        </div>
-        <label className="impact-field">
-          Impact score <input name="impact" type="number" min="0" max="100" defaultValue="10" />
-          <span>0–100</span>
-        </label>
         {message && <div className="form-alert success">{message}</div>}
         <button className="btn-primary" disabled={busy}>
           {busy ? <LoaderCircle className="spin" size={17} /> : <Plus size={17} />} Save monthly entry
@@ -129,6 +165,7 @@ export function MonthlyEntry({ employee, period }: { employee: Employee; period:
     </section>
   );
 }
+
 async function api(url: string, body: unknown) {
   const response = await fetch(url, {
     method: "POST",

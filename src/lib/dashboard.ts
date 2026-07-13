@@ -28,12 +28,9 @@ export async function getDashboardData(actor: SessionUser) {
   const assignments = await db
     .getRepository(RoleKpiAssignment)
     .find({ where: { roleId: In([...new Set(users.map((u) => u.roleId))]) }, relations: { kpi: true } });
-  const roles =
-    actor.accessLevel === AccessLevel.ADMIN ? await db.getRepository(Role).find({ order: { title: "ASC" } }) : [];
-  const kpis =
-    actor.accessLevel === AccessLevel.ADMIN
-      ? await db.getRepository(KpiDefinition).find({ order: { name: "ASC" } })
-      : [];
+  const canManage = actor.accessLevel === AccessLevel.ADMIN || actor.accessLevel === AccessLevel.MANAGER;
+  const roles = canManage ? await db.getRepository(Role).find({ order: { title: "ASC" } }) : [];
+  const kpis = canManage ? await db.getRepository(KpiDefinition).find({ order: { name: "ASC" } }) : [];
 
   return {
     actor,

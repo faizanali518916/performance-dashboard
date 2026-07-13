@@ -56,7 +56,11 @@ export const sendPasswordResetEmail = (email: string, token: string) =>
 
 async function sendWithConfiguredUrl(email: string, token: string, subject: string, action: string, path: string) {
   try {
-    const url = `${env().NEXTAUTH_URL}${path}?token=${encodeURIComponent(token)}`;
+    const baseUrl =
+      env().ENVIRONMENT === "development"
+        ? "http://localhost:3000"
+        : "https://performance-dashboard-psi-lac.vercel.app";
+    const url = `${baseUrl}${path}?token=${encodeURIComponent(token)}`;
     await send(email, subject, action, url);
   } catch (error) {
     if (error instanceof EmailDeliveryError) throw error;
