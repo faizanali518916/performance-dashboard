@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { LoaderCircle, Save, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { JournalTimeline } from "./JournalTimeline";
@@ -9,11 +9,16 @@ import type { DashboardData } from "@/lib/dashboard";
 type Employee = DashboardData["users"][number];
 type Entry = Employee["journals"][number];
 
-export function JournalPanel({ employee }: { employee: Employee }) {
+export function JournalPanel({ employee, canManage }: { employee: Employee; canManage: boolean }) {
   const router = useRouter();
   const [editing, setEditing] = useState<Entry | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [filter, setFilter] = useState<"ALL" | Entry["category"]>("ALL");
+  const entries = useMemo(
+    () => employee.journals.filter((entry) => filter === "ALL" || entry.category === filter),
+    [employee.journals, filter],
+  );
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -92,11 +97,14 @@ export function JournalPanel({ employee }: { employee: Employee }) {
                 <select name="category" defaultValue={editing.category}>
                   <option value="GOOD">Achievement</option>
                   <option value="BAD">Challenge</option>
+                  <option value="NOTE">Note</option>
                 </select>
               </label>
               <label>
                 Impact
-                <input name="impact" type="number" min="0" max="100" defaultValue={editing.impact} required />
+                <select name="impact" defaultValue={String(editing.impact)}>
+                  <option value="99">High</option><option value="66">Medium</option><option value="33">Low</option>
+                </select>
               </label>
             </div>
             <label>
@@ -115,32 +123,14 @@ export function JournalPanel({ employee }: { employee: Employee }) {
         </div>
       )}
       {message && <div className="form-alert success">{message}</div>}
-      <div className="journal-columns">
-        <article className="journal-column">
-          <h3>Achievements</h3>
-          <JournalTimeline
-            entries={employee.journals}
-            category="GOOD"
-            onEdit={(entry) => setEditing(employee.journals.find((journal) => journal.id === entry.id) ?? null)}
-            onDelete={(entry) => {
-              const journal = employee.journals.find((item) => item.id === entry.id);
-              if (journal) void remove(journal);
-            }}
-          />
-        </article>
-        <article className="journal-column">
-          <h3>Challenges</h3>
-          <JournalTimeline
-            entries={employee.journals}
-            category="BAD"
-            onEdit={(entry) => setEditing(employee.journals.find((journal) => journal.id === entry.id) ?? null)}
-            onDelete={(entry) => {
-              const journal = employee.journals.find((item) => item.id === entry.id);
-              if (journal) void remove(journal);
-            }}
-          />
-        </article>
+      <div className="list-toolbar">
+        <label>Filter <select value={filter} onChange={(event) => setFilter(event.target.value as typeof filter)}><option value="ALL">All entries</option><option value="GOOD">Achievements</option><option value="BAD">Challenges</option><option value="NOTE">Notes</option></select></label>
       </div>
+      <JournalTimeline
+        entries={entries}
+        onEdit={canManage ? (entry) => setEditing(employee.journals.find((journal) => journal.id === entry.id) ?? null) : undefined}
+        onDelete={canManage ? (entry) => { const journal = employee.journals.find((item) => item.id === entry.id); if (journal) void remove(journal); } : undefined}
+      />
     </section>
   );
 }

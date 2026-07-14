@@ -3,11 +3,13 @@ import { hash } from "bcryptjs";
 import { AppDataSource } from "./data-source";
 import {
   AccessLevel,
+  Department,
   Journal,
   JournalCategory,
   KpiDefinition,
   Role,
   RoleKpiAssignment,
+  Sop,
   User,
   UserKpiPerformance,
   UserStatus,
@@ -18,6 +20,7 @@ async function seed() {
   const roleRepo = db.getRepository(Role);
   const kpiRepo = db.getRepository(KpiDefinition);
   const userRepo = db.getRepository(User);
+  const departmentRepo = db.getRepository(Department);
   const roleTitles = ["Leadership", "Amazon Account Manager", "Performance Marketing", "Content Strategy"];
   const roles: Record<string, Role> = {};
   for (const title of roleTitles) {
@@ -57,7 +60,7 @@ async function seed() {
     email: string,
     roleTitle: string,
     accessLevel: AccessLevel,
-    managerId: string | null = null,
+    departmentId: string | null = null,
   ) {
     let user = await userRepo.findOneBy({ email });
     if (!user)
@@ -68,7 +71,7 @@ async function seed() {
         emailVerified: true,
         roleId: roles[roleTitle].id,
         accessLevel,
-        managerId,
+        departmentId,
         status: UserStatus.ACTIVE,
       });
     return user;
@@ -84,14 +87,26 @@ async function seed() {
     "manager@example.com",
     "Performance Marketing",
     AccessLevel.MANAGER,
-    admin.id,
   );
+  let department = await departmentRepo.findOneBy({ name: "Growth" });
+  if (!department) department = await departmentRepo.save({ name: "Growth" });
+  await userRepo.update(manager.id, { departmentId: null });
+  await db.createQueryBuilder().insert().into("department_managers")
+    .values({ departmentId: department.id, managerId: manager.id }).orIgnore().execute();
   const team = [
-    await upsertUser("Ali Raza", "ali@example.com", "Amazon Account Manager", AccessLevel.EMPLOYEE, manager.id),
-    await upsertUser("Fatima Malik", "fatima@example.com", "Content Strategy", AccessLevel.EMPLOYEE, manager.id),
-    await upsertUser("Khizer Ahmed", "khizer@example.com", "Performance Marketing", AccessLevel.EMPLOYEE, manager.id),
+    await upsertUser("Ali Raza", "ali@example.com", "Amazon Account Manager", AccessLevel.EMPLOYEE, department.id),
+    await upsertUser("Fatima Malik", "fatima@example.com", "Content Strategy", AccessLevel.EMPLOYEE, department.id),
+    await upsertUser("Khizer Ahmed", "khizer@example.com", "Performance Marketing", AccessLevel.EMPLOYEE, department.id),
   ];
+  await userRepo.update(team.map((user) => user.id), { departmentId: department.id });
   const all = [admin, manager, ...team];
+  const sopRepo = db.getRepository(Sop);
+  if (!(await sopRepo.count()))
+    await sopRepo.save({
+      name: "Client onboarding",
+      description: "Confirm scope and ownership, collect required access, schedule kickoff, and document the first 30-day success plan.",
+      departmentId: department.id,
+    });
   const performanceRepo = db.getRepository(UserKpiPerformance);
   const months = ["2026-03-01", "2026-04-01", "2026-05-01", "2026-06-01", "2026-07-01"];
   for (let u = 0; u < all.length; u++) {

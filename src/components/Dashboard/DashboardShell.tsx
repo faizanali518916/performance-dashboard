@@ -9,6 +9,7 @@ import {
   Users,
   ClipboardEdit,
   Target,
+  BookOpen,
 } from "lucide-react";
 import type { DashboardData } from "@/lib/dashboard";
 import { Header } from "./Header";
@@ -17,23 +18,20 @@ import { PerformanceChart, KpiBarChart } from "./PerformanceChart";
 import { KPICard } from "./KPICard";
 import { JournalTimeline } from "./JournalTimeline";
 import { JournalPanel } from "./JournalPanel";
+import { GoalsPanel } from "./GoalsPanel";
 import { MonthlyEntry } from "./MonthlyEntry";
 import { TeamOverview } from "./TeamOverview";
 import { AdminPanel } from "./AdminPanel";
+import { SopPanel } from "./SopPanel";
 
-type Tab = "overview" | "entry" | "journal" | "kpis" | "team" | "management";
+type Tab = "overview" | "entry" | "journal" | "goals" | "sops" | "kpis" | "team" | "management";
 export function DashboardShell({ data }: { data: DashboardData }) {
   const initialId = data.users.find((u) => u.id === data.actor.id)?.id || data.users[0]?.id;
   const [selectedId, setSelectedId] = useState(initialId);
   const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7));
   const [tab, setTab] = useState<Tab>("overview");
   const employee = data.users.find((u) => u.id === selectedId) || data.users[0];
-  const selectableUsers =
-    data.actor.accessLevel === "ADMIN"
-      ? data.users
-      : data.actor.accessLevel === "MANAGER"
-        ? data.users.filter((user) => user.id === data.actor.id || user.managerId === data.actor.id)
-        : data.users.filter((user) => user.id === data.actor.id);
+  const selectableUsers = data.users;
   const stats = useMemo(() => (employee ? getStats(employee) : null), [employee]);
   if (!employee)
     return (
@@ -49,8 +47,10 @@ export function DashboardShell({ data }: { data: DashboardData }) {
     );
   const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard; visible: boolean }[] = [
     { id: "overview", label: "Overview", icon: LayoutDashboard, visible: true },
-    { id: "entry", label: "Monthly Entry", icon: ClipboardEdit, visible: data.actor.accessLevel !== "EMPLOYEE" },
+    { id: "entry", label: "Performance Update", icon: ClipboardEdit, visible: data.actor.accessLevel !== "EMPLOYEE" },
     { id: "journal", label: "Journal", icon: ClipboardEdit, visible: true },
+    { id: "goals", label: "Goals", icon: Target, visible: true },
+    { id: "sops", label: "SOPs", icon: BookOpen, visible: true },
     { id: "kpis", label: "KPI Tracking", icon: Target, visible: true },
     { id: "team", label: "Team Overview", icon: Users, visible: data.actor.accessLevel !== "EMPLOYEE" },
     { id: "management", label: "Management", icon: Settings2, visible: data.actor.accessLevel !== "EMPLOYEE" },
@@ -65,7 +65,7 @@ export function DashboardShell({ data }: { data: DashboardData }) {
             <select value={employee.id} onChange={(e) => setSelectedId(e.target.value)}>
               {selectableUsers.map((u) => (
                 <option value={u.id} key={u.id}>
-                  {u.name}
+                  {u.name} - {u.roleTitle}
                 </option>
               ))}
             </select>
@@ -78,7 +78,7 @@ export function DashboardShell({ data }: { data: DashboardData }) {
             <span>Role & access</span>
             <div className="person-info">
               <strong>{employee.roleTitle}</strong>
-              <small>{employee.accessLevel.toLowerCase()}</small>
+              <small>{employee.departmentName ?? employee.accessLevel.toLowerCase()}</small>
             </div>
           </label>
         </section>
@@ -173,13 +173,47 @@ export function DashboardShell({ data }: { data: DashboardData }) {
                   </div>
                   <button onClick={() => setTab("journal")}>View all →</button>
                 </div>
-                <JournalTimeline entries={employee.journals.slice(0, 4)} />
+                <JournalTimeline entries={employee.journals.slice(0, 3)} />
               </article>
             </section>
+            {data.nextRole && (
+              <section className="card next-role-panel">
+                <div className="card-header compact">
+                  <div>
+                    <span className="section-eyebrow">ROLE PROGRESSION</span>
+                    <h2>Next role: {data.nextRole.title}</h2>
+                    <p>Target KPIs for the next step in your role path.</p>
+                  </div>
+                </div>
+                {data.nextRole.kpis.length ? (
+                  <div className="next-role-kpi-grid">
+                    {data.nextRole.kpis.map((kpi) => (
+                      <article className="next-role-kpi" key={kpi.id}>
+                        <span>{kpi.name}</span>
+                        <strong>{kpi.target.toLocaleString()}</strong>
+                        <small>{kpi.unit || "Target"}</small>
+                      </article>
+                    ))}
+                  </div>
+                ) : <div className="inline-empty">No KPI targets have been assigned to this role yet.</div>}
+              </section>
+            )}
           </>
         )}
         {tab === "entry" && <MonthlyEntry employee={employee} period={period} actor={data.actor} />}{" "}
-        {tab === "journal" && <JournalPanel employee={employee} />}{" "}
+        {tab === "journal" && (
+          <JournalPanel
+            employee={employee}
+            canManage={data.actor.accessLevel !== "EMPLOYEE" && data.actor.id !== employee.id}
+          />
+        )}{" "}
+        {tab === "goals" && (
+          <GoalsPanel
+            employee={employee}
+            canManage={data.actor.accessLevel !== "EMPLOYEE" && data.actor.id !== employee.id}
+          />
+        )}{" "}
+        {tab === "sops" && <SopPanel data={data} />}{" "}
         {tab === "kpis" && (
           <section className="card">
             <div className="card-header">

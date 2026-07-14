@@ -10,8 +10,12 @@ const TABLES = [
   '"auth_rate_limits"',
   '"user_kpi_performance"',
   '"journals"',
+  '"goals"',
+  '"sops"',
+  '"department_managers"',
   '"role_kpi_assignments"',
   '"users"',
+  '"departments"',
   '"kpi_definitions"',
   '"roles"',
 ].join(", ");

@@ -20,12 +20,13 @@ export const forgotSchema = z.object({ email: z.string().trim().email().max(320)
 export const tokenSchema = z.object({ token: z.string().min(32).max(256) });
 export const resetSchema = tokenSchema.extend({ password });
 export const createRoleSchema = z.object({ title: z.string().trim().min(2).max(120) });
-export const updateRoleSchema = createRoleSchema.partial();
+export const updateRoleSchema = createRoleSchema.partial().extend({ nextRoleId: uuid.nullable().optional() });
 export const createKpiSchema = z.object({
   name: z.string().trim().min(2).max(160),
   description: z.string().trim().max(2000).nullable().optional(),
   unit: z.string().trim().max(40).nullable().optional(),
 });
+export const updateKpiSchema = createKpiSchema.partial();
 export const assignKpiSchema = z.object({ kpiId: uuid, target: z.coerce.number().finite().nonnegative() });
 export const performanceSchema = z.object({
   userId: uuid,
@@ -37,23 +38,48 @@ export const performanceSchema = z.object({
 export const journalSchema = z.object({
   userId: uuid,
   description: z.string().trim().min(3).max(5000),
-  category: z.enum(["GOOD", "BAD"]),
+  category: z.enum(["GOOD", "BAD", "NOTE"]),
   impact: z.coerce.number().finite().min(0).max(100),
   period: dateOnly,
 });
 export const updateJournalSchema = journalSchema.omit({ userId: true });
+export const goalSchema = z.object({
+  userId: uuid,
+  description: z.string().trim().min(3).max(5000),
+  deadline: z.coerce.date(),
+  status: z.enum(["BACKLOG", "IN_PROGRESS", "BLOCKED", "UNDER_REVIEW", "FINISHED"]),
+  remarks: z.string().trim().max(5000).default(""),
+});
+export const updateGoalSchema = goalSchema.omit({ userId: true });
 export const createUserSchema = registerSchema.extend({
   roleId: uuid,
-  managerId: uuid.nullable().optional(),
+  departmentId: uuid.optional(),
+  departmentIds: z.array(uuid).min(1).max(50).optional(),
   accessLevel: z.enum(["EMPLOYEE", "MANAGER", "ADMIN"]).default("EMPLOYEE"),
   status: z.enum(["active", "inactive"]).default("active"),
+}).superRefine((input, context) => {
+  if (input.accessLevel === "MANAGER") {
+    if (!input.departmentIds?.length)
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["departmentIds"], message: "Select at least one department" });
+  } else if (!input.departmentId) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["departmentId"], message: "Select a department" });
+  }
 });
 export const updateUserSchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
   roleId: uuid.optional(),
-  managerId: uuid.nullable().optional(),
+  departmentId: uuid.nullable().optional(),
+  departmentIds: z.array(uuid).max(100).optional(),
   accessLevel: z.enum(["EMPLOYEE", "MANAGER", "ADMIN"]).optional(),
   status: z.enum(["active", "inactive"]).optional(),
+});
+export const departmentSchema = z.object({ name: z.string().trim().min(2).max(120) });
+export const updateDepartmentSchema = departmentSchema.extend({ managerIds: z.array(uuid).max(100).optional() });
+export const departmentManagerSchema = z.object({ managerId: uuid });
+export const sopSchema = z.object({
+  name: z.string().trim().min(2).max(160),
+  description: z.string().trim().min(3).max(10000),
+  departmentId: uuid,
 });
 
 export function firstZodError(error: z.ZodError) {

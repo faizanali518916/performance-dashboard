@@ -56,7 +56,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     email: user.email,
     emailVerified: user.emailVerified,
     accessLevel: user.accessLevel,
-    managerId: user.managerId,
+    departmentId: user.departmentId,
     role: { id: user.role.id, title: user.role.title },
   };
 }

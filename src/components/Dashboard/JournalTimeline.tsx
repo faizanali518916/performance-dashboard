@@ -1,8 +1,8 @@
-import { AlertTriangle, Award, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 type Entry = {
   id: string;
   description: string;
-  category: "GOOD" | "BAD";
+  category: "GOOD" | "BAD" | "NOTE";
   impact: number;
   period: string;
   createdAt: string;
@@ -14,7 +14,7 @@ export function JournalTimeline({
   onDelete,
 }: {
   entries: Entry[];
-  category?: "GOOD" | "BAD";
+  category?: "GOOD" | "BAD" | "NOTE";
   onEdit?: (entry: Entry) => void;
   onDelete?: (entry: Entry) => void;
 }) {
@@ -29,20 +29,24 @@ export function JournalTimeline({
     );
   return (
     <div className="timeline">
-      {rows.map((entry) => (
-        <article className={`timeline-item ${entry.category.toLowerCase()}`} key={entry.id}>
-          <div className="timeline-icon">
-            {entry.category === "GOOD" ? <Award size={19} /> : <AlertTriangle size={19} />}
-          </div>
-          <div>
-            <div className="timeline-meta">
-              <span>{entry.category === "GOOD" ? "Achievement" : "Challenge"}</span>
-              <time>
-                {new Date(`${entry.period}T00:00:00`).toLocaleDateString(undefined, { month: "long", year: "numeric" })}
-              </time>
+      {rows.map((entry) => {
+        const impact = impactLabel(entry.impact);
+        const period = new Date(`${entry.period}T00:00:00`);
+        return (
+          <article className={`timeline-item ${entry.category.toLowerCase()}`} key={entry.id}>
+            <div className="timeline-date">
+              <span>Journal</span>
+              <strong>{period.toLocaleDateString(undefined, { month: "short" })}</strong>
+              <b>{period.getFullYear()}</b>
+              <small>Monthly entry</small>
             </div>
-            <p>{entry.description}</p>
-            <small>Impact {entry.impact}/100</small>
+            <div className="timeline-content">
+              <div className="timeline-meta">
+                <span className="entry-type-badge">{entry.category === "GOOD" ? "Achievement" : entry.category === "BAD" ? "Challenge" : "Note"}</span>
+              </div>
+              <p>{entry.description}</p>
+              <div className="entry-badges"><span className={`impact-badge ${impact.toLowerCase()}`}>Impact: {impact}</span></div>
+            </div>
             {onEdit && onDelete && (
               <div className="timeline-actions">
                 <button type="button" onClick={() => onEdit(entry)}>
@@ -53,9 +57,15 @@ export function JournalTimeline({
                 </button>
               </div>
             )}
-          </div>
-        </article>
-      ))}
+          </article>
+        );
+      })}
     </div>
   );
+}
+
+function impactLabel(impact: number) {
+  if (impact >= 99) return "High";
+  if (impact >= 66) return "Medium";
+  return "Low";
 }

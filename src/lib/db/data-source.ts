@@ -4,6 +4,9 @@ import { DataSource } from "typeorm";
 import {
   AuthRateLimit,
   AuthToken,
+  Goal,
+  Department,
+  Sop,
   Journal,
   KpiDefinition,
   Role,
@@ -13,6 +16,10 @@ import {
   UserKpiPerformance,
 } from "./entities";
 import { InitialSchema1760000000000 } from "./migrations/1760000000000-InitialSchema";
+import { GoalsAndJournalNotes1760100000000 } from "./migrations/1760100000000-GoalsAndJournalNotes";
+import { Departments1760200000000 } from "./migrations/1760200000000-Departments";
+import { Sops1760300000000 } from "./migrations/1760300000000-Sops";
+import { RoleProgression1760400000000 } from "./migrations/1760400000000-RoleProgression";
 
 const configuredUrl = process.env.DATABASE_URL;
 if (!configuredUrl) throw new Error("DATABASE_URL is required");
@@ -40,16 +47,25 @@ export const AppDataSource = new DataSource({
   logging: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   entities: [
     Role,
+    Department,
+    Sop,
     User,
     KpiDefinition,
     RoleKpiAssignment,
     UserKpiPerformance,
     Journal,
+    Goal,
     Session,
     AuthToken,
     AuthRateLimit,
   ],
-  migrations: [InitialSchema1760000000000],
+  migrations: [
+    InitialSchema1760000000000,
+    GoalsAndJournalNotes1760100000000,
+    Departments1760200000000,
+    Sops1760300000000,
+    RoleProgression1760400000000,
+  ],
 });
 
 declare global {
@@ -66,7 +82,9 @@ export async function getDataSource() {
       dataSource.isInitialized &&
       dataSource.hasMetadata(User) &&
       dataSource.hasMetadata(Session) &&
-      dataSource.hasMetadata(Role),
+      dataSource.hasMetadata(Role) &&
+      dataSource.hasMetadata(Department) &&
+      dataSource.hasMetadata(Sop),
   );
   if (compatible) return compatible;
   const initialized = await AppDataSource.initialize();
